@@ -9,13 +9,13 @@
   </script>
   <script type="module">
     import * as THREE from "three";
-  
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(innerWidth, innerHeight);
     document.body.appendChild(renderer.domElement);
-  
+
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
     const cube = new THREE.Mesh(geometry, material);
@@ -24,60 +24,13 @@
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(5, 5, 5);
     scene.add(light);
-  
+
     camera.position.z = 5;
-  
-    // --- Click detection setup ---
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    let isAnimatingClick = false;
 
-    window.addEventListener("click", (event) => {
-      if (isAnimatingClick) return;
-  
-      mouse.x = (event.clientX / innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / innerHeight) * 2 + 1;
-  
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(cube);
-  
-      if (intersects.length > 0) {
-        isAnimatingClick = true;
-        playClickAnimation();
-      }
-    });
-
-    function playClickAnimation() {
-      const duration = 800; // ms
-      const start = performance.now();
-      const startScale = cube.scale.x;
-  
-      function step(now) {
-        const t = Math.min((now - start) / duration, 1);
-        // ease out
-        const eased = 1 - Math.pow(1 - t, 3);
-  
-        cube.scale.setScalar(startScale + eased * 3); // grows
-        cube.rotation.x += 0.15;
-        cube.rotation.y += 0.15;
-        material.opacity = 1 - eased;
-        material.transparent = true;
-  
-        if (t < 1) {
-          requestAnimationFrame(step);
-        } else {
-          window.location.href = "next-page.html"; // <-- change this
-        }
-      }
-      requestAnimationFrame(step);
-    }
-  
     function animate() {
       requestAnimationFrame(animate);
-      if (!isAnimatingClick) {
-        cube.rotation.x += 0.005;
-        cube.rotation.y += 0.005;
-      }
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
       renderer.render(scene, camera);
     }
     animate();
