@@ -1,39 +1,196 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <style>body { margin: 0; }</style>
+<style>
+  body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+  #info-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 30px 50px;
+    border-radius: 12px;
+    font-size: 28px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s, transform 0.4s;
+    text-align: center;
+  }
+  #info-panel.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  #hint {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-family: Arial;
+    opacity: 0.7;
+  }
+</style>
 </head>
 <body>
-  <script type="importmap">
-    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
-  </script>
-  <script type="module">
-    import * as THREE from "three";
+<div id="info-panel"></div>
+<div id="hint">Use ↑ ↓ to drive</div>
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(innerWidth, innerHeight);
-    document.body.appendChild(renderer.domElement);
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
 
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+// ---------- Scene setup ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
 
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5);
-    scene.add(light);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
 
-    camera.position.z = 5;
+window.addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
-    function animate() {
-      requestAnimationFrame(animate);
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
-      renderer.render(scene, camera);
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 20, 10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+// ---------- Road ----------
+const roadLength = 400;
+const road = new THREE.Mesh(
+  new THREE.PlaneGeometry(10, roadLength),
+  new THREE.MeshStandardMaterial({ color: 0x333333 })
+);
+road.rotation.x = -Math.PI / 2;
+road.position.z = -roadLength / 2 + 10;
+scene.add(road);
+
+// lane lines
+for (let i = -10; i < roadLength; i += 8) {
+  const line = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 3),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  line.rotation.x = -Math.PI / 2;
+  line.position.set(0, 0.01, -i + 10);
+  scene.add(line);
+}
+
+// ground either side
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, roadLength),
+  new THREE.MeshStandardMaterial({ color: 0x4caf50 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.set(0, -0.01, -roadLength / 2 + 10);
+scene.add(ground);
+
+// ---------- Car ----------
+const car = new THREE.Group();
+
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(2, 0.8, 3.5),
+  new THREE.MeshStandardMaterial({ color: 0xe63946 })
+);
+body.position.y = 0.6;
+car.add(body);
+
+const cabin = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 0.6, 1.8),
+  new THREE.MeshStandardMaterial({ color: 0x1d3557 })
+);
+cabin.position.set(0, 1.2, -0.2);
+car.add(cabin);
+
+const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 16);
+const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+const wheelPositions = [
+  [-1, 0.4, 1.2], [1, 0.4, 1.2],
+  [-1, 0.4, -1.2], [1, 0.4, -1.2]
+];
+wheelPositions.forEach(([x, y, z]) => {
+  const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+  wheel.rotation.z = Math.PI / 2;
+  wheel.position.set(x, y, z);
+  car.add(wheel);
+});
+
+car.position.set(0, 0, 15);
+scene.add(car);
+
+// ---------- Checkpoints (info stops) ----------
+const checkpoints = [
+  { z: 10,  text: "First Name: Alex" },
+  { z: -5,  text: "Last Name: Sharma" },
+  { z: -20, text: "Role: Web Developer" },
+  { z: -35, text: "Skills: Three.js, JavaScript" },
+  { z: -50, text: "Thanks for stopping by! 🚗" },
+];
+let nextCheckpointIndex = 0;
+
+const infoPanel = document.getElementById("info-panel");
+let panelTimeout = null;
+
+function showInfo(text) {
+  infoPanel.textContent = text;
+  infoPanel.classList.add("show");
+  clearTimeout(panelTimeout);
+  panelTimeout = setTimeout(() => infoPanel.classList.remove("show"), 2200);
+}
+
+// ---------- Controls ----------
+const keys = {};
+window.addEventListener("keydown", (e) => keys[e.key] = true);
+window.addEventListener("keyup", (e) => keys[e.key] = false);
+
+let speed = 0;
+const maxSpeed = 0.25;
+const accel = 0.01;
+const friction = 0.02;
+const minZ = -60; // end of road
+const maxZ = 20;  // start of road
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // acceleration
+  if (keys["ArrowUp"]) speed = Math.min(speed + accel, maxSpeed);
+  else if (keys["ArrowDown"]) speed = Math.max(speed - accel, -maxSpeed / 1.5);
+  else {
+    if (speed > 0) speed = Math.max(0, speed - friction);
+    if (speed < 0) speed = Math.min(0, speed + friction);
+  }
+
+  car.position.z -= speed;
+  car.position.z = Math.max(minZ, Math.min(maxZ, car.position.z));
+
+  // slight wheel-roll illusion via body tilt (optional flair)
+  car.rotation.x = speed * -0.05;
+
+  // check checkpoints
+  if (nextCheckpointIndex < checkpoints.length) {
+    const cp = checkpoints[nextCheckpointIndex];
+    if (car.position.z <= cp.z) {
+      showInfo(cp.text);
+      nextCheckpointIndex++;
     }
-    animate();
-  </script>
+  }
+
+  // camera follows behind car
+  camera.position.set(car.position.x, car.position.y + 4, car.position.z + 8);
+  camera.lookAt(car.position.x, car.position.y + 1, car.position.z - 5);
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
 </body>
 </html>
