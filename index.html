@@ -63,6 +63,35 @@
   .nav-links a:hover::after{width:100%;}
   @media (max-width:720px){.nav-links{display:none;}}
 
+  /* HAMBURGER */
+  .nav-burger{
+    display:none; flex-direction:column; justify-content:center; gap:5px;
+    width:36px; height:36px; cursor:pointer; padding:4px; background:none; border:none;
+  }
+  .nav-burger span{
+    display:block; height:2px; border-radius:2px; background:var(--text-muted);
+    transition:transform .25s, opacity .25s, width .25s;
+  }
+  .nav-burger span:nth-child(3){width:60%;}
+  .nav-burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-burger.open span:nth-child(2){opacity:0;}
+  .nav-burger.open span:nth-child(3){width:100%; transform:translateY(-7px) rotate(-45deg);}
+  @media(max-width:720px){.nav-burger{display:flex;}}
+
+  .mobile-menu{
+    display:none; position:fixed; top:64px; left:0; right:0; z-index:99;
+    background:rgba(10,12,17,.97); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line-soft);
+    flex-direction:column; padding:8px 0 16px;
+  }
+  .mobile-menu.open{display:flex;}
+  .mobile-menu a{
+    font-family:var(--mono); font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-muted); padding:14px 32px; border-left:2px solid transparent;
+    transition:color .2s, border-color .2s;
+  }
+  .mobile-menu a:hover{color:var(--accent); border-color:var(--accent);}
+
   section{position:relative; padding:120px 0 96px;}
   .section-head{margin-bottom:56px; max-width:640px;}
   .section-head h2{font-size:clamp(32px, 4.2vw, 46px); margin-bottom:14px;}
@@ -287,8 +316,18 @@
       <a href="#projects">Projects</a>
       <a href="#contact">Contact</a>
     </div>
+    <button class="nav-burger" id="navBurger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#about"    onclick="closeMobileMenu()">About</a>
+  <a href="#skills"   onclick="closeMobileMenu()">Skills</a>
+  <a href="#projects" onclick="closeMobileMenu()">Projects</a>
+  <a href="#contact"  onclick="closeMobileMenu()">Contact</a>
+</div>
 
 <section id="hero">
   <div class="wrap hero-grid">
@@ -544,18 +583,18 @@
         <a href="https://in.linkedin.com/in/ananya-dassi-12255a228" target="_blank" class="cc-btn">Open LinkedIn →</a>
       </div>
 
-      <div class="contact-card cc-primary">
-        <div class="cc-icon">↓</div>
-        <h3>Resume</h3>
-        <p>Download my latest resume as a PDF.</p>
-        <a href="resume.pdf" download class="cc-btn">Download PDF →</a>
-      </div>
-
       <div class="contact-card">
         <div class="cc-icon">✉</div>
         <h3>Email</h3>
         <p>Reach out directly for opportunities, questions, or just to say hi.</p>
         <a href="mailto:dassiananya@gmail.com" class="cc-btn">Send an email →</a>
+      </div>
+
+      <div class="contact-card cc-primary">
+        <div class="cc-icon">↓</div>
+        <h3>Resume</h3>
+        <p>Download my latest resume as a PDF.</p>
+        <a href="resume.pdf" download class="cc-btn">Download PDF →</a>
       </div>
 
     </div>
@@ -568,6 +607,18 @@
 </footer>
 
 <script>
+// ---------- MOBILE NAV ----------
+const navBurger = document.getElementById('navBurger');
+const mobileMenu = document.getElementById('mobileMenu');
+navBurger.addEventListener('click', () => {
+  navBurger.classList.toggle('open');
+  mobileMenu.classList.toggle('open');
+});
+function closeMobileMenu(){
+  navBurger.classList.remove('open');
+  mobileMenu.classList.remove('open');
+}
+
 // ---------- ROBOT EYE TRACKING ----------
 (function(){
   const pupilL = document.getElementById('pupilL');
